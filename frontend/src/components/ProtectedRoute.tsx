@@ -8,10 +8,16 @@ export function ProtectedRoute({ role }: { role?: "ADMIN" | "RESIDENT" }) {
 
   if (isLoading) {
     return (
-      <div className="p-8 space-y-4">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-64 w-full" />
+      <div className="min-h-screen bg-[#f4f6f8] p-4 sm:p-8">
+        <div className="mx-auto max-w-5xl space-y-4">
+          <Skeleton className="h-10 w-48" />
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+          </div>
+          <Skeleton className="h-64 w-full" />
+        </div>
       </div>
     );
   }

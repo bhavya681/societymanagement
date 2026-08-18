@@ -18,7 +18,9 @@ import {
 
 function HomeRedirect() {
   const { user, isLoading } = useAuth();
-  if (isLoading) return null;
+  if (isLoading) {
+    return <div className="min-h-screen bg-[#f4f6f8]" />;
+  }
   if (!user) return <Navigate to="/login" replace />;
   return <Navigate to={isAdminRole(user.role) ? "/admin/dashboard" : "/resident/dashboard"} replace />;
 }

@@ -35,7 +35,7 @@ export function Badge({ children, status, className }: { children?: string; stat
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize",
+        "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium capitalize",
         styles[key] || "bg-slate-100 text-slate-700 border-slate-200",
         className,
       )}

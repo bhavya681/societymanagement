@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { X } from "lucide-react";
 import { Button } from "./button";
 
 export function ConfirmDialog({
@@ -20,11 +21,11 @@ export function ConfirmDialog({
     <>
       <span onClick={() => setOpen(true)}>{trigger}</span>
       {open ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-semibold">{title}</h3>
-            <p className="mt-2 text-sm text-slate-600">{description}</p>
-            <div className="mt-5 flex justify-end gap-2">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-0 sm:items-center sm:p-4">
+          <div className="w-full max-w-md rounded-t-xl bg-white p-5 shadow-lg sm:rounded-lg sm:p-6">
+            <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
@@ -61,12 +62,17 @@ export function Modal({
 }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-0 sm:items-center sm:p-4">
-      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-6 shadow-xl sm:rounded-xl">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold">{title}</h3>
-          <button className="text-slate-400 hover:text-slate-700" onClick={onClose}>
-            ✕
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-0 sm:items-center sm:p-4">
+      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-xl bg-white p-5 shadow-lg sm:rounded-lg sm:p-6">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+          <button
+            type="button"
+            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
           </button>
         </div>
         {children}

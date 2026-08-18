@@ -21,63 +21,85 @@ export function LoginPage() {
   const form = useForm({ resolver: zodResolver(schema), defaultValues: { email: "", password: "" } });
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      <div className="hidden bg-slate-950 p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <p className="text-sm font-bold tracking-[0.2em] text-emerald-300">SOCIETY MAINTENANCE HUB</p>
+    <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
+      <div className="hidden bg-slate-950 px-10 py-10 text-white lg:flex lg:flex-col lg:justify-between xl:px-16">
+        <p className="text-sm font-semibold">Society Maintenance Hub</p>
         <div>
-          <h1 className="max-w-md text-4xl font-extrabold leading-tight">Run society finances, requests and notices in one place.</h1>
-          <p className="mt-4 max-w-md text-slate-400">
-            Billing, collections, expenses, maintenance tickets and announcements — backed by a real MongoDB database.
+          <h1 className="max-w-md text-3xl font-semibold leading-snug xl:text-4xl">
+            Billing, requests and notices for housing societies.
+          </h1>
+          <p className="mt-4 max-w-md text-sm leading-6 text-slate-400">
+            A single workspace for collections, expenses, maintenance tickets and resident communication.
           </p>
         </div>
-        <p className="text-xs text-slate-500">Demo: admin@example.com / password · resident@example.com / password</p>
+        <p className="text-xs text-slate-500">Use the demo accounts on the sign-in form to explore both roles.</p>
       </div>
-      <div className="flex items-center justify-center p-6">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8">
-            <h2 className="text-2xl font-bold">Welcome back</h2>
-            <p className="mt-1 text-sm text-slate-500">Sign in to your society account</p>
-            <form
-              className="mt-6 space-y-4"
-              onSubmit={form.handleSubmit(async (values) => {
-                setError("");
-                try {
-                  const user = await login(values.email, values.password);
-                  navigate(isAdminRole(user.role) ? "/admin/dashboard" : "/resident/dashboard");
-                } catch (err) {
-                  setError(err instanceof ApiError ? err.message : "Unable to sign in");
-                }
-              })}
-            >
-              <div>
-                <Label>Email</Label>
-                <Input className="mt-1" type="email" {...form.register("email")} />
+      <div className="flex items-center justify-center bg-[#f4f6f8] p-4 sm:p-8">
+        <div className="w-full max-w-md">
+          <div className="mb-6 lg:hidden">
+            <p className="text-sm font-semibold text-slate-900">Society Maintenance Hub</p>
+            <p className="mt-1 text-sm text-slate-500">Sign in to continue</p>
+          </div>
+          <Card>
+            <CardContent className="p-5 sm:p-7">
+              <h2 className="text-lg font-semibold text-slate-900">Sign in</h2>
+              <p className="mt-1 text-sm text-slate-500">Enter your society account details</p>
+              <form
+                className="mt-5 space-y-3.5"
+                onSubmit={form.handleSubmit(async (values) => {
+                  setError("");
+                  try {
+                    const user = await login(values.email, values.password);
+                    navigate(isAdminRole(user.role) ? "/admin/dashboard" : "/resident/dashboard");
+                  } catch (err) {
+                    setError(err instanceof ApiError ? err.message : "Unable to sign in");
+                  }
+                })}
+              >
+                <div>
+                  <Label>Email</Label>
+                  <Input className="mt-1" type="email" autoComplete="email" {...form.register("email")} />
+                </div>
+                <div>
+                  <Label>Password</Label>
+                  <Input className="mt-1" type="password" autoComplete="current-password" {...form.register("password")} />
+                </div>
+                {error ? <p className="text-sm text-red-700">{error}</p> : null}
+                <Button className="w-full" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting ? "Signing in…" : "Sign in"}
+                </Button>
+              </form>
+              <p className="mt-4 text-sm text-slate-500">
+                New resident?{" "}
+                <Link className="font-medium text-teal-800 hover:underline" to="/register">
+                  Create an account
+                </Link>
+              </p>
+              <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => {
+                    form.setValue("email", "admin@example.com");
+                    form.setValue("password", "password");
+                  }}
+                >
+                  Admin demo
+                </Button>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => {
+                    form.setValue("email", "resident@example.com");
+                    form.setValue("password", "password");
+                  }}
+                >
+                  Resident demo
+                </Button>
               </div>
-              <div>
-                <Label>Password</Label>
-                <Input className="mt-1" type="password" {...form.register("password")} />
-              </div>
-              {error ? <p className="text-sm text-red-600">{error}</p> : null}
-              <Button className="w-full" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Signing in..." : "Sign in"}
-              </Button>
-            </form>
-            <p className="mt-4 text-sm text-slate-500">
-              New resident?{" "}
-              <Link className="font-semibold text-primary" to="/register">
-                Register
-              </Link>
-            </p>
-            <div className="mt-6 grid grid-cols-2 gap-2 text-xs">
-              <Button variant="outline" type="button" onClick={() => { form.setValue("email", "admin@example.com"); form.setValue("password", "password"); }}>
-                Admin demo
-              </Button>
-              <Button variant="outline" type="button" onClick={() => { form.setValue("email", "resident@example.com"); form.setValue("password", "password"); }}>
-                Resident demo
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
@@ -98,16 +120,19 @@ export function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState("");
-  const form = useForm({ resolver: zodResolver(registerSchema), defaultValues: { name: "", email: "", phone: "", password: "", flatNumber: "", buildingName: "A Wing" } });
+  const form = useForm({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { name: "", email: "", phone: "", password: "", flatNumber: "", buildingName: "A Wing" },
+  });
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-      <Card className="w-full max-w-lg">
-        <CardContent className="p-8">
-          <h2 className="text-2xl font-bold">Resident registration</h2>
-          <p className="mt-1 text-sm text-slate-500">Join your society with your flat details</p>
+    <div className="flex min-h-screen items-center justify-center bg-[#f4f6f8] p-4 sm:p-8">
+      <Card className="w-full max-w-xl">
+        <CardContent className="p-5 sm:p-7">
+          <h2 className="text-lg font-semibold text-slate-900">Resident registration</h2>
+          <p className="mt-1 text-sm text-slate-500">Use your flat details as recorded by the society office.</p>
           <form
-            className="mt-6 grid gap-4 sm:grid-cols-2"
+            className="mt-5 grid gap-3.5 sm:grid-cols-2"
             onSubmit={form.handleSubmit(async (values) => {
               setError("");
               try {
@@ -150,14 +175,14 @@ export function RegisterPage() {
               <Label>Emergency phone</Label>
               <Input className="mt-1" {...form.register("emergencyContactPhone")} />
             </div>
-            {error ? <p className="sm:col-span-2 text-sm text-red-600">{error}</p> : null}
+            {error ? <p className="text-sm text-red-700 sm:col-span-2">{error}</p> : null}
             <Button className="sm:col-span-2" disabled={form.formState.isSubmitting}>
               Create account
             </Button>
           </form>
           <p className="mt-4 text-sm text-slate-500">
             Already registered?{" "}
-            <Link className="font-semibold text-primary" to="/login">
+            <Link className="font-medium text-teal-800 hover:underline" to="/login">
               Sign in
             </Link>
           </p>

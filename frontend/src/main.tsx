@@ -17,7 +17,7 @@ createRoot(document.getElementById("root")!).render(
       <BrowserRouter>
         <AuthProvider>
           <App />
-          <Toaster richColors position="top-right" />
+          <Toaster position="top-center" toastOptions={{ className: "text-sm" }} />
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
