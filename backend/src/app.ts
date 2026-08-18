@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import { env } from "./config/env";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { authenticate } from "./middleware/auth";
+import { isDatabaseConnected } from "./config/database";
 import authRoutes from "./routes/auth.routes";
 import societyRoutes from "./routes/society.routes";
 import residentRoutes from "./routes/resident.routes";
@@ -37,7 +38,12 @@ export function createApp() {
   app.use(morgan(env.isProd ? "combined" : "dev"));
 
   app.get("/api/health", (_req, res) => {
-    res.json({ success: true, message: "Society Maintenance Hub API", data: { status: "ok" } });
+    const database = isDatabaseConnected() ? "connected" : "disconnected";
+    res.json({
+      success: database === "connected",
+      server: "ok",
+      database,
+    });
   });
 
   app.use("/api/auth", authRoutes);

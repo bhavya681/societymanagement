@@ -20,4 +20,8 @@ export const env = {
   clientUrl: process.env.CLIENT_URL ?? "http://localhost:5173",
   cookieSecure: process.env.COOKIE_SECURE === "true",
   isProd: (process.env.NODE_ENV ?? "development") === "production",
+  dnsServers: process.env.DNS_SERVERS
+    ?.split(",")
+    .map((server) => server.trim())
+    .filter(Boolean),
 };
