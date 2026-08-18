@@ -5,6 +5,7 @@ import { Flat } from "../models/Flat";
 import { Bill } from "../models/Bill";
 import { Payment } from "../models/Payment";
 import { MaintenanceRequest } from "../models/MaintenanceRequest";
+import { Society } from "../models/Society";
 import { asyncHandler } from "../utils/asyncHandler";
 import { created, success } from "../utils/response";
 import { assertResidentOwn, escapeRegex, oid, societyId } from "../utils/access";
@@ -51,7 +52,7 @@ export const listResidents = asyncHandler(async (req: Request, res: Response) =>
     role: { $in: ["RESIDENT", "COMMITTEE"] },
   };
   if (!isAdminLike(req.user!.role)) {
-    const society = await (await import("../models/Society")).Society.findById(sid);
+    const society = await Society.findById(sid);
     if (!society?.privacy?.showDirectoryToResidents) {
       throw AppError.forbidden("Resident directory is private", "DIRECTORY_PRIVATE");
     }
@@ -67,7 +68,7 @@ export const listResidents = asyncHandler(async (req: Request, res: Response) =>
   ]);
   let items: Record<string, unknown>[] = await attachMaintenanceStatus(sid, rows);
   if (!isAdminLike(req.user!.role)) {
-    const society = await (await import("../models/Society")).Society.findById(sid);
+    const society = await Society.findById(sid);
     items = items.map((item) => {
       const copy = { ...(item as Record<string, unknown>) };
       if (!society?.privacy?.showResidentEmail) delete copy.email;
