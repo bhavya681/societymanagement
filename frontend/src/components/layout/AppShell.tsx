@@ -17,6 +17,9 @@ import {
   Wallet,
   Wrench,
   X,
+  TrendingUp,
+  BarChart3,
+  CalendarClock,
 } from "lucide-react";
 import { useState } from "react";
 import { isAdminRole, useAuth } from "@/context/AuthContext";
@@ -42,6 +45,10 @@ const adminGroups = [
       { to: "/admin/bills", label: "Bills", icon: Receipt },
       { to: "/admin/payments", label: "Payments", icon: IndianRupee },
       { to: "/admin/expenses", label: "Expenses", icon: Wallet },
+      { to: "/admin/vendors", label: "Vendors", icon: Users },
+      { to: "/admin/recurring-expenses", label: "Recurring", icon: CalendarClock },
+      { to: "/admin/income", label: "Income", icon: TrendingUp },
+      { to: "/admin/cash-flow", label: "Cash flow", icon: BarChart3 },
       { to: "/admin/reports", label: "Reports", icon: ClipboardList },
     ],
   },
@@ -51,6 +58,13 @@ const adminGroups = [
       { to: "/admin/requests", label: "Requests", icon: Wrench },
       { to: "/admin/announcements", label: "Announcements", icon: Bell },
       { to: "/admin/documents", label: "Documents", icon: FileText },
+    ],
+  },
+  {
+    label: "Closing",
+    items: [
+      { to: "/admin/aging", label: "Aging", icon: BarChart3 },
+      { to: "/admin/month-closing", label: "Month closing", icon: CalendarClock },
     ],
   },
   {
@@ -125,7 +139,9 @@ export function AppShell() {
         <div className="flex h-14 items-center justify-between border-b border-white/10 px-4">
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">Society Hub</p>
-            <p className="truncate text-xs text-slate-400">{admin ? "Administrator" : "Resident"}</p>
+            <p className="truncate text-xs text-slate-400">
+              {user?.role ? user.role.replaceAll("_", " ").toLowerCase() : admin ? "Administrator" : "Resident"}
+            </p>
           </div>
           <button type="button" className="rounded-md p-1 hover:bg-white/10 lg:hidden" onClick={() => setOpen(false)}>
             <X className="h-4 w-4" />

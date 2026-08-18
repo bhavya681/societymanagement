@@ -15,6 +15,7 @@ import { AuditLog } from "../models/AuditLog";
 import { SocietyDocument } from "../models/Document";
 import { rupeesToPaise, computeBillTotalPaise } from "../utils/money";
 import { deriveBillStatus } from "../services/penalty.service";
+import { refreshBillStatus } from "../services/billing.service";
 
 async function reset() {
   await Promise.all([
@@ -126,6 +127,16 @@ async function seed() {
     societyId: society._id,
   });
 
+  await User.create({
+    name: "Ananya Mehta",
+    email: "accountant@example.com",
+    phone: "9876500002",
+    passwordHash,
+    role: "ACCOUNTANT",
+    status: "ACTIVE",
+    societyId: society._id,
+  });
+
   const residentDefs = [
     { name: "Priya Sharma", email: "resident@example.com", phone: "9876500101", flat: "A-101" },
     { name: "Amit Deshpande", email: "amit@example.com", phone: "9876500102", flat: "A-102" },
@@ -229,6 +240,35 @@ async function seed() {
         });
       }
     }
+  }
+
+  const lateResident = residents[3];
+  const lateFlat = flats.find((f) => String(f.flatNumber) === "A-201")!;
+  const lateBill = await Bill.findOne({
+    societyId: society._id,
+    flatId: lateFlat._id,
+    billingMonth: now.getMonth() + 1,
+    billingYear: now.getFullYear(),
+    billKind: "MAINTENANCE",
+  });
+  if (lateBill && lateBill.paidAmount === 0) {
+    const latePaymentDate = new Date(now.getFullYear(), now.getMonth(), 25);
+    const latePayment = await Payment.create({
+      billId: lateBill._id,
+      societyId: society._id,
+      residentId: lateResident._id,
+      flatId: lateFlat._id,
+      amount: rupeesToPaise(500),
+      paymentMethod: "CASH",
+      transactionId: "LATE001",
+      paymentDate: latePaymentDate,
+      status: "SUCCESS",
+      recordedBy: admin._id,
+      notes: "Late partial payment",
+    });
+    lateBill.paidAmount = rupeesToPaise(500);
+    await lateBill.save();
+    await refreshBillStatus(lateBill._id, society.penaltyConfig as any);
   }
 
   await Expense.create([
@@ -420,8 +460,9 @@ async function seed() {
   });
 
   console.log("Seed complete.");
-  console.log("Admin:    admin@example.com / password");
-  console.log("Resident: resident@example.com / password");
+  console.log("Admin:      admin@example.com / password");
+  console.log("Accountant: accountant@example.com / password");
+  console.log("Resident:   resident@example.com / password");
   await disconnectDatabase();
 }
 

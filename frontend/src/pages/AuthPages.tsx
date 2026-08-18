@@ -32,7 +32,7 @@ export function LoginPage() {
             A single workspace for collections, expenses, maintenance tickets and resident communication.
           </p>
         </div>
-        <p className="text-xs text-slate-500">Use the demo accounts on the sign-in form to explore both roles.</p>
+        <p className="text-xs text-slate-500">Use the demo accounts on the sign-in form to explore admin, accountant and resident roles.</p>
       </div>
       <div className="flex items-center justify-center bg-[#f4f6f8] p-4 sm:p-8">
         <div className="w-full max-w-md">
@@ -59,10 +59,12 @@ export function LoginPage() {
                 <div>
                   <Label>Email</Label>
                   <Input className="mt-1" type="email" autoComplete="email" {...form.register("email")} />
+                  {form.formState.errors.email ? <p className="mt-1 text-sm text-red-700">{String(form.formState.errors.email.message)}</p> : null}
                 </div>
                 <div>
                   <Label>Password</Label>
                   <Input className="mt-1" type="password" autoComplete="current-password" {...form.register("password")} />
+                  {form.formState.errors.password ? <p className="mt-1 text-sm text-red-700">{String(form.formState.errors.password.message)}</p> : null}
                 </div>
                 {error ? <p className="text-sm text-red-700">{error}</p> : null}
                 <Button className="w-full" disabled={form.formState.isSubmitting}>
@@ -75,7 +77,7 @@ export function LoginPage() {
                   Create an account
                 </Link>
               </p>
-              <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <Button
                   variant="outline"
                   type="button"
@@ -84,7 +86,17 @@ export function LoginPage() {
                     form.setValue("password", "password");
                   }}
                 >
-                  Admin demo
+                  Admin
+                </Button>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => {
+                    form.setValue("email", "accountant@example.com");
+                    form.setValue("password", "password");
+                  }}
+                >
+                  Accountant
                 </Button>
                 <Button
                   variant="outline"
@@ -94,7 +106,7 @@ export function LoginPage() {
                     form.setValue("password", "password");
                   }}
                 >
-                  Resident demo
+                  Resident
                 </Button>
               </div>
             </CardContent>
@@ -122,7 +134,7 @@ export function RegisterPage() {
   const [error, setError] = useState("");
   const form = useForm({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", email: "", phone: "", password: "", flatNumber: "", buildingName: "A Wing" },
+    defaultValues: { name: "", email: "", phone: "", password: "", flatNumber: "", buildingName: "" },
   });
 
   return (
@@ -146,18 +158,22 @@ export function RegisterPage() {
             <div className="sm:col-span-2">
               <Label>Full name</Label>
               <Input className="mt-1" {...form.register("name")} />
+              {form.formState.errors.name ? <p className="mt-1 text-sm text-red-700">{String(form.formState.errors.name.message)}</p> : null}
             </div>
             <div>
               <Label>Email</Label>
               <Input className="mt-1" type="email" {...form.register("email")} />
+              {form.formState.errors.email ? <p className="mt-1 text-sm text-red-700">{String(form.formState.errors.email.message)}</p> : null}
             </div>
             <div>
               <Label>Phone</Label>
               <Input className="mt-1" {...form.register("phone")} />
+              {form.formState.errors.phone ? <p className="mt-1 text-sm text-red-700">{String(form.formState.errors.phone.message)}</p> : null}
             </div>
             <div>
               <Label>Password</Label>
               <Input className="mt-1" type="password" {...form.register("password")} />
+              {form.formState.errors.password ? <p className="mt-1 text-sm text-red-700">{String(form.formState.errors.password.message)}</p> : null}
             </div>
             <div>
               <Label>Building / wing</Label>
@@ -166,6 +182,7 @@ export function RegisterPage() {
             <div>
               <Label>Flat number</Label>
               <Input className="mt-1" placeholder="A-101" {...form.register("flatNumber")} />
+              {form.formState.errors.flatNumber ? <p className="mt-1 text-sm text-red-700">{String(form.formState.errors.flatNumber.message)}</p> : null}
             </div>
             <div>
               <Label>Emergency contact</Label>

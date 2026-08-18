@@ -127,6 +127,7 @@ This **resets** demo collections and inserts Sunrise Residency sample data (buil
 | Role | Email | Password |
 | --- | --- | --- |
 | Admin | admin@example.com | password |
+| Accountant | accountant@example.com | password |
 | Resident | resident@example.com | password |
 
 These authenticate against MongoDB. There is no frontend-only fake login.
