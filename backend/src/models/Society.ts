@@ -1,8 +1,9 @@
 import mongoose, { Schema } from "mongoose";
+import { generateInviteCode } from "../utils/inviteCode";
 
 const penaltyConfigSchema = new Schema(
   {
-    type: { type: String, enum: ["FIXED", "PERCENTAGE"], default: "FIXED" },
+    type: { type: String, enum: ["FIXED", "PERCENTAGE", "PER_DAY"], default: "FIXED" },
     fixedPenalty: { type: Number, default: 10000 },
     percentage: { type: Number, default: 2 },
     gracePeriodDays: { type: Number, default: 10 },
@@ -24,6 +25,7 @@ const privacySchema = new Schema(
 const societySchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
+    inviteCode: { type: String, required: true, uppercase: true, trim: true, unique: true, index: true },
     registrationNumber: { type: String, default: "", trim: true },
     address: { type: String, required: true },
     city: { type: String, required: true },
@@ -46,5 +48,9 @@ const societySchema = new Schema(
 
 societySchema.index({ name: 1 });
 societySchema.index({ registrationNumber: 1 });
+
+societySchema.pre("validate", function assignInviteCode() {
+  if (!this.inviteCode) this.inviteCode = generateInviteCode();
+});
 
 export const Society = mongoose.model("Society", societySchema);

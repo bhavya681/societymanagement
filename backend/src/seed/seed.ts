@@ -49,6 +49,7 @@ async function seed() {
   const society = await Society.create({
     name: "Sunrise Residency",
     registrationNumber: "MH/PUNE/SOC/2014/1182",
+    inviteCode: "SUNRISE1",
     address: "12 Baner Road, Near Balewadi High Street",
     city: "Pune",
     state: "Maharashtra",
@@ -133,6 +134,16 @@ async function seed() {
     phone: "9876500002",
     passwordHash,
     role: "ACCOUNTANT",
+    status: "ACTIVE",
+    societyId: society._id,
+  });
+
+  await User.create({
+    name: "Rohit Desai",
+    email: "treasurer@example.com",
+    phone: "9876500003",
+    passwordHash,
+    role: "TREASURER",
     status: "ACTIVE",
     societyId: society._id,
   });
@@ -461,8 +472,9 @@ async function seed() {
 
   console.log("Seed complete.");
   console.log("Admin:      admin@example.com / password");
-  console.log("Accountant: accountant@example.com / password");
+  console.log("Treasurer:  treasurer@example.com / password");
   console.log("Resident:   resident@example.com / password");
+  console.log("Invite code: SUNRISE1");
   await disconnectDatabase();
 }
 

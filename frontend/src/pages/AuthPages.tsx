@@ -72,9 +72,13 @@ export function LoginPage() {
                 </Button>
               </form>
               <p className="mt-4 text-sm text-slate-500">
-                New resident?{" "}
+                New here?{" "}
+                <Link className="font-medium text-teal-800 hover:underline" to="/register-society">
+                  Create a society
+                </Link>
+                {" · "}
                 <Link className="font-medium text-teal-800 hover:underline" to="/register">
-                  Create an account
+                  Join as resident
                 </Link>
               </p>
               <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -92,11 +96,11 @@ export function LoginPage() {
                   variant="outline"
                   type="button"
                   onClick={() => {
-                    form.setValue("email", "accountant@example.com");
+                    form.setValue("email", "treasurer@example.com");
                     form.setValue("password", "password");
                   }}
                 >
-                  Accountant
+                  Treasurer
                 </Button>
                 <Button
                   variant="outline"
@@ -122,6 +126,7 @@ const registerSchema = z.object({
   email: z.string().email(),
   phone: z.string().min(8),
   password: z.string().min(8),
+  societyCode: z.string().min(4, "Enter the society invite code"),
   flatNumber: z.string().min(1),
   buildingName: z.string().optional(),
   emergencyContactName: z.string().optional(),
@@ -134,15 +139,15 @@ export function RegisterPage() {
   const [error, setError] = useState("");
   const form = useForm({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", email: "", phone: "", password: "", flatNumber: "", buildingName: "" },
+    defaultValues: { name: "", email: "", phone: "", password: "", societyCode: "", flatNumber: "", buildingName: "" },
   });
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#f4f6f8] p-4 sm:p-8">
       <Card className="w-full max-w-xl">
         <CardContent className="p-5 sm:p-7">
-          <h2 className="text-lg font-semibold text-slate-900">Resident registration</h2>
-          <p className="mt-1 text-sm text-slate-500">Use your flat details as recorded by the society office.</p>
+          <h2 className="text-lg font-semibold text-slate-900">Join a society</h2>
+          <p className="mt-1 text-sm text-slate-500">Use the invite code from your society admin, then enter your flat.</p>
           <form
             className="mt-5 grid gap-3.5 sm:grid-cols-2"
             onSubmit={form.handleSubmit(async (values) => {
@@ -155,6 +160,11 @@ export function RegisterPage() {
               }
             })}
           >
+            <div className="sm:col-span-2">
+              <Label>Society invite code</Label>
+              <Input className="mt-1 uppercase" placeholder="e.g. SUNRISE1" {...form.register("societyCode")} />
+              {form.formState.errors.societyCode ? <p className="mt-1 text-sm text-red-700">{String(form.formState.errors.societyCode.message)}</p> : null}
+            </div>
             <div className="sm:col-span-2">
               <Label>Full name</Label>
               <Input className="mt-1" {...form.register("name")} />
@@ -177,28 +187,135 @@ export function RegisterPage() {
             </div>
             <div>
               <Label>Building / wing</Label>
-              <Input className="mt-1" {...form.register("buildingName")} />
+              <Input className="mt-1" placeholder="A Wing" {...form.register("buildingName")} />
             </div>
             <div>
               <Label>Flat number</Label>
               <Input className="mt-1" placeholder="A-101" {...form.register("flatNumber")} />
               {form.formState.errors.flatNumber ? <p className="mt-1 text-sm text-red-700">{String(form.formState.errors.flatNumber.message)}</p> : null}
             </div>
-            <div>
-              <Label>Emergency contact</Label>
-              <Input className="mt-1" {...form.register("emergencyContactName")} />
-            </div>
-            <div>
-              <Label>Emergency phone</Label>
-              <Input className="mt-1" {...form.register("emergencyContactPhone")} />
-            </div>
             {error ? <p className="text-sm text-red-700 sm:col-span-2">{error}</p> : null}
             <Button className="sm:col-span-2" disabled={form.formState.isSubmitting}>
-              Create account
+              Join society
             </Button>
           </form>
           <p className="mt-4 text-sm text-slate-500">
-            Already registered?{" "}
+            Starting a new society?{" "}
+            <Link className="font-medium text-teal-800 hover:underline" to="/register-society">
+              Create one
+            </Link>
+            {" · "}
+            <Link className="font-medium text-teal-800 hover:underline" to="/login">
+              Sign in
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+const createSocietySchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+  phone: z.string().min(8),
+  password: z.string().min(8),
+  societyName: z.string().min(2),
+  address: z.string().min(4),
+  city: z.string().min(2),
+  state: z.string().min(2),
+  pincode: z.string().min(4),
+  buildingName: z.string().optional(),
+});
+
+export function CreateSocietyPage() {
+  const { registerSociety } = useAuth();
+  const navigate = useNavigate();
+  const [error, setError] = useState("");
+  const form = useForm({
+    resolver: zodResolver(createSocietySchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      password: "",
+      societyName: "",
+      address: "",
+      city: "",
+      state: "",
+      pincode: "",
+      buildingName: "",
+    },
+  });
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#f4f6f8] p-4 sm:p-8">
+      <Card className="w-full max-w-xl">
+        <CardContent className="p-5 sm:p-7">
+          <h2 className="text-lg font-semibold text-slate-900">Create your society</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            You become the admin. Then add treasurers and residents, or share the invite code from Settings.
+          </p>
+          <form
+            className="mt-5 grid gap-3.5 sm:grid-cols-2"
+            onSubmit={form.handleSubmit(async (values) => {
+              setError("");
+              try {
+                await registerSociety(values);
+                navigate("/admin/dashboard");
+              } catch (err) {
+                setError(err instanceof ApiError ? err.message : "Could not create society");
+              }
+            })}
+          >
+            <div className="sm:col-span-2">
+              <Label>Society name</Label>
+              <Input className="mt-1" placeholder="Green Park Residency" {...form.register("societyName")} />
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Address</Label>
+              <Input className="mt-1" {...form.register("address")} />
+            </div>
+            <div>
+              <Label>City</Label>
+              <Input className="mt-1" {...form.register("city")} />
+            </div>
+            <div>
+              <Label>State</Label>
+              <Input className="mt-1" {...form.register("state")} />
+            </div>
+            <div>
+              <Label>Pincode</Label>
+              <Input className="mt-1" {...form.register("pincode")} />
+            </div>
+            <div>
+              <Label>Building / wing (optional)</Label>
+              <Input className="mt-1" placeholder="A Wing" {...form.register("buildingName")} />
+            </div>
+            <div className="sm:col-span-2 border-t border-slate-100 pt-3 text-sm font-medium text-slate-700">Your admin account</div>
+            <div className="sm:col-span-2">
+              <Label>Your name</Label>
+              <Input className="mt-1" {...form.register("name")} />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input className="mt-1" type="email" {...form.register("email")} />
+            </div>
+            <div>
+              <Label>Phone</Label>
+              <Input className="mt-1" {...form.register("phone")} />
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Password</Label>
+              <Input className="mt-1" type="password" {...form.register("password")} />
+            </div>
+            {error ? <p className="text-sm text-red-700 sm:col-span-2">{error}</p> : null}
+            <Button className="sm:col-span-2" disabled={form.formState.isSubmitting}>
+              Create society
+            </Button>
+          </form>
+          <p className="mt-4 text-sm text-slate-500">
+            Already have an account?{" "}
             <Link className="font-medium text-teal-800 hover:underline" to="/login">
               Sign in
             </Link>

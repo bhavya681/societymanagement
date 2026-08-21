@@ -10,11 +10,25 @@ export const registerSchema = z.object({
   email: z.string().email(),
   phone: z.string().min(8).max(15),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  societyCode: z.string().optional(),
+  societyCode: z.string().min(4).max(16),
   buildingName: z.string().optional(),
   flatNumber: z.string().min(1),
   emergencyContactName: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
+});
+
+export const registerSocietySchema = z.object({
+  name: z.string().min(2).max(80),
+  email: z.string().email(),
+  phone: z.string().min(8).max(15),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  societyName: z.string().min(2).max(120),
+  address: z.string().min(4).max(200),
+  city: z.string().min(2).max(80),
+  state: z.string().min(2).max(80),
+  pincode: z.string().min(4).max(12),
+  contactPhone: z.string().min(8).max(15).optional(),
+  buildingName: z.string().optional(),
 });
 
 export const createResidentSchema = z.object({
@@ -26,7 +40,7 @@ export const createResidentSchema = z.object({
   occupancyRole: z.enum(["OWNER", "TENANT", "FAMILY"]).optional(),
   emergencyContactName: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
-  role: z.enum(["RESIDENT", "MAINTENANCE_STAFF", "SECURITY", "COMMITTEE"]).optional(),
+  role: z.enum(["RESIDENT", "ADMIN", "TREASURER", "ACCOUNTANT", "SECRETARY", "MAINTENANCE_STAFF", "SECURITY", "COMMITTEE"]).optional(),
 });
 
 export const updateResidentSchema = z.object({

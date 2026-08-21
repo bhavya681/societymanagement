@@ -52,6 +52,9 @@ export function ResidentDashboardPage() {
           <Link to="/resident/announcements">Announcements</Link>
         </Button>
         <Button variant="outline" asChild size="sm">
+          <Link to="/resident/ledger">Payment ledger</Link>
+        </Button>
+        <Button variant="outline" asChild size="sm">
           <Link to="/resident/profile">Profile</Link>
         </Button>
       </div>
@@ -182,7 +185,7 @@ export function ResidentBillsPage() {
       <Modal title="Record a payment" open={Boolean(bill)} onClose={() => setBill(null)}>
         {bill ? (
           <form
-            className="space-y-3"
+            className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
               const f = new FormData(e.currentTarget);
@@ -196,17 +199,34 @@ export function ResidentBillsPage() {
               });
             }}
           >
-            <p className="text-sm text-slate-500">
-              Remaining {formatINR((bill.totalAmount as number) - (bill.paidAmount as number))}
-            </p>
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
+              <p className="font-medium text-slate-900">{String(bill.billNumber)}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {monthName(bill.billingMonth as number)} {String(bill.billingYear)}
+              </p>
+              <div className="mt-3 space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Total due</span>
+                  <span className="font-medium tabular-nums">{formatINR(bill.totalAmount as number)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Paid so far</span>
+                  <span className="font-medium tabular-nums">{formatINR(bill.paidAmount as number)}</span>
+                </div>
+                <div className="flex justify-between border-t border-slate-200 pt-1">
+                  <span className="text-slate-700">Remaining</span>
+                  <span className="font-semibold tabular-nums">{formatINR((bill.totalAmount as number) - (bill.paidAmount as number))}</span>
+                </div>
+              </div>
+            </div>
             <div>
-              <Label>Amount</Label>
+              <Label>Amount (₹)</Label>
               <Input
                 name="amount"
                 type="number"
                 required
-                defaultValue={(bill.totalAmount as number) - (bill.paidAmount as number)}
                 className="mt-1"
+                defaultValue={(bill.totalAmount as number) - (bill.paidAmount as number)}
               />
             </div>
             <div>
@@ -221,7 +241,9 @@ export function ResidentBillsPage() {
               <Label>UPI / transaction reference</Label>
               <Input name="transactionId" className="mt-1" />
             </div>
-            <Button className="w-full">Submit payment</Button>
+            <Button className="w-full" disabled={pay.isPending}>
+              {pay.isPending ? "Submitting..." : "Submit payment"}
+            </Button>
           </form>
         ) : null}
       </Modal>
@@ -245,14 +267,22 @@ export function ResidentPaymentsPage() {
           rowKey={(p) => String(p.id)}
           columns={[
             { header: "Date", cell: (p) => formatDate(p.paymentDate as string) },
+            { header: "Bill", cell: (p) => (p.billId as { billNumber?: string; billingMonth?: number; billingYear?: number })?.billNumber },
             { header: "Method", cell: (p) => String(p.paymentMethod) },
+            { header: "Reference", cell: (p) => String(p.transactionId || "—") },
             { header: "Amount", align: "right", cell: (p) => formatINR(p.amount as number) },
+            { header: "Status", cell: (p) => <Badge status={String(p.status)} /> },
           ]}
           mobile={(p) => (
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-medium text-slate-900">{formatDate(p.paymentDate as string)}</p>
-                <p className="mt-1 text-sm text-slate-500">{String(p.paymentMethod)}</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  {(p.billId as { billNumber?: string })?.billNumber} · {String(p.paymentMethod)}
+                </p>
+                {p.transactionId ? (
+                  <p className="mt-0.5 text-xs text-slate-400">Ref: {String(p.transactionId)}</p>
+                ) : null}
               </div>
               <p className="font-medium tabular-nums">{formatINR(p.amount as number)}</p>
             </div>
@@ -402,6 +432,70 @@ export function DirectoryPage() {
           )}
         />
       )}
+    </div>
+  );
+}
+
+export function LedgerPage() {
+  const { data, isLoading } = useQuery({ queryKey: ["ledger"], queryFn: dashboardApi.monthlyLedger });
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-64" />
+      </div>
+    );
+  }
+  if (!data) return <p className="text-sm text-red-700">Unable to load ledger.</p>;
+  const summary = data.summary as Record<string, number>;
+  const rows = (data.rows as Record<string, unknown>[]) ?? [];
+  return (
+    <div>
+      <PageHeader title="Payment ledger" subtitle="Month-wise maintenance charges, penalties and payments." />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Total charged" value={formatINR(summary.totalCharged)} />
+        <StatCard label="Total paid" value={formatINR(summary.totalPaid)} />
+        <StatCard label="Penalties" value={formatINR(summary.totalPenalty)} />
+        <StatCard label="Outstanding" value={formatINR(summary.outstanding)} />
+      </div>
+      <div className="mt-5">
+        {rows.length === 0 ? (
+          <EmptyState title="No billing records yet." />
+        ) : (
+          <DataTable
+            rows={rows}
+            rowKey={(r) => String(r.id)}
+            columns={[
+              { header: "Month", cell: (r) => `${monthName(r.billingMonth as number)} ${String(r.billingYear)}` },
+              { header: "Flat", cell: (r) => String(r.flatNumber ?? "—") },
+              { header: "Maintenance", align: "right", cell: (r) => formatINR(r.baseAmount as number) },
+              { header: "Penalty", align: "right", cell: (r) => formatINR(r.penalty as number) },
+              { header: "Total due", align: "right", cell: (r) => formatINR(r.totalAmount as number) },
+              { header: "Paid", align: "right", cell: (r) => formatINR(r.paidAmount as number) },
+              { header: "Remaining", align: "right", cell: (r) => formatINR(r.remaining as number) },
+              { header: "Status", cell: (r) => <Badge status={String(r.status)} /> },
+            ]}
+            mobile={(r) => (
+              <div className="space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-slate-900">{monthName(r.billingMonth as number)} {String(r.billingYear)}</p>
+                    <p className="text-xs text-slate-500">Flat {String(r.flatNumber ?? "—")}</p>
+                  </div>
+                  <Badge status={String(r.status)} />
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div><span className="text-slate-500">Maintenance</span><p className="tabular-nums">{formatINR(r.baseAmount as number)}</p></div>
+                  <div><span className="text-slate-500">Penalty</span><p className="tabular-nums">{formatINR(r.penalty as number)}</p></div>
+                  <div><span className="text-slate-500">Total due</span><p className="font-medium tabular-nums">{formatINR(r.totalAmount as number)}</p></div>
+                  <div><span className="text-slate-500">Paid</span><p className="font-medium tabular-nums">{formatINR(r.paidAmount as number)}</p></div>
+                  <div><span className="text-slate-500">Remaining</span><p className="font-medium tabular-nums text-red-700">{formatINR(r.remaining as number)}</p></div>
+                </div>
+              </div>
+            )}
+          />
+        )}
+      </div>
     </div>
   );
 }

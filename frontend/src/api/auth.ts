@@ -15,6 +15,13 @@ export function register(payload: Record<string, unknown>) {
   });
 }
 
+export function registerSociety(payload: Record<string, unknown>) {
+  return api<{ token: string; user: AuthUser; society: { inviteCode?: string; name?: string } }>("/auth/register-society", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export function logout() {
   return api<null>("/auth/logout", { method: "POST" });
 }

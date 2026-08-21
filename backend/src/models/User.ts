@@ -7,6 +7,7 @@ export const USER_ROLES = [
   "SECRETARY",
   "CHAIRMAN",
   "ACCOUNTANT",
+  "TREASURER",
   "SECURITY",
   "MAINTENANCE_STAFF",
 ] as const;

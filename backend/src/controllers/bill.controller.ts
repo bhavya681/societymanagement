@@ -17,7 +17,11 @@ export const listBills = asyncHandler(async (req: Request, res: Response) => {
   const sid = societyId(req);
   const { page, limit, skip, sort } = parsePagination(req.query, "createdAt");
   const filter: Record<string, unknown> = { societyId: sid };
-  if (!isAdminLike(req.user!.role)) filter.residentId = req.user!.id;
+  if (!isAdminLike(req.user!.role)) {
+    filter.residentId = req.user!.id;
+  } else if (req.query.residentId) {
+    filter.residentId = req.query.residentId;
+  }
   if (req.query.status) filter.status = req.query.status;
   if (req.query.month) filter.billingMonth = Number(req.query.month);
   if (req.query.year) filter.billingYear = Number(req.query.year);
@@ -44,6 +48,18 @@ export const getBill = asyncHandler(async (req: Request, res: Response) => {
   if (!bill) throw AppError.notFound("Bill not found", "BILL_NOT_FOUND");
   assertResidentOwn(bill.residentId, req);
   return success(res, publicDoc(bill));
+});
+
+export const outstandingBills = asyncHandler(async (req: Request, res: Response) => {
+  const sid = societyId(req);
+  const residentId = req.query.residentId;
+  const filter: Record<string, unknown> = { societyId: sid, status: { $ne: "CANCELLED" } };
+  if (residentId) filter.residentId = residentId;
+  const bills = await Bill.find(filter)
+    .populate("flatId", "flatNumber")
+    .populate("residentId", "name email")
+    .sort({ dueDate: 1 });
+  return success(res, bills.map(publicDoc));
 });
 
 export const generateBills = asyncHandler(async (req: Request, res: Response) => {

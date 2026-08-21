@@ -1,4 +1,4 @@
-export type Role = "ADMIN" | "RESIDENT" | "COMMITTEE" | "SECRETARY" | "CHAIRMAN" | "ACCOUNTANT" | "SECURITY" | "MAINTENANCE_STAFF";
+export type Role = "ADMIN" | "RESIDENT" | "COMMITTEE" | "SECRETARY" | "CHAIRMAN" | "ACCOUNTANT" | "TREASURER" | "SECURITY" | "MAINTENANCE_STAFF";
 
 export interface AuthUser {
   id: string;

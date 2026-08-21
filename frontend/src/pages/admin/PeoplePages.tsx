@@ -27,7 +27,7 @@ export function ResidentsPage() {
   const create = useMutation({
     mutationFn: (body: Record<string, unknown>) => residentsApi.create(body),
     onSuccess: () => {
-      toast.success("Resident added successfully.");
+      toast.success("Member added successfully.");
       qc.invalidateQueries({ queryKey: ["residents"] });
       setOpen(false);
     },
@@ -38,15 +38,15 @@ export function ResidentsPage() {
   return (
     <div>
       <PageHeader
-        title="Residents"
-        subtitle="Directory, occupancy and outstanding dues."
+        title="People"
+        subtitle="Add admins, treasurers and residents for this society."
         actions={
           <>
             <Button variant="outline" size="sm" onClick={() => downloadExport("residents")}>
               Export CSV
             </Button>
             <Button size="sm" onClick={() => setOpen(true)}>
-              Add resident
+              Add member
             </Button>
           </>
         }
@@ -75,6 +75,7 @@ export function ResidentsPage() {
             { header: "Flat", cell: (row) => (row.flatId as { flatNumber?: string } | null)?.flatNumber ?? "—" },
             { header: "Phone", cell: (row) => String(row.phone) },
             { header: "Email", cell: (row) => String(row.email) },
+            { header: "Role", cell: (row) => String(row.role).replaceAll("_", " ") },
             { header: "Status", cell: (row) => <Badge status={String(row.status)} /> },
             { header: "Dues", align: "right", cell: (row) => formatINR(row.outstanding as number) },
           ]}
@@ -100,7 +101,7 @@ export function ResidentsPage() {
         onPrev={() => setPage((p) => p - 1)}
         onNext={() => setPage((p) => p + 1)}
       />
-      <Modal title="Add resident" open={open} onClose={() => setOpen(false)}>
+      <Modal title="Add society member" open={open} onClose={() => setOpen(false)}>
         <form
           className="space-y-3"
           onSubmit={(e) => {
@@ -113,6 +114,7 @@ export function ResidentsPage() {
               password: form.get("password") || "password",
               flatId: form.get("flatId") || undefined,
               occupancyRole: form.get("occupancyRole"),
+              role: form.get("role") || "RESIDENT",
             });
           }}
         >
@@ -144,6 +146,14 @@ export function ResidentsPage() {
             </Select>
           </div>
           <div>
+            <Label>Role</Label>
+            <Select name="role" className="mt-1" defaultValue="RESIDENT">
+              <option value="RESIDENT">Resident</option>
+              <option value="TREASURER">Treasurer</option>
+              <option value="ADMIN">Admin</option>
+            </Select>
+          </div>
+          <div>
             <Label>Occupancy</Label>
             <Select name="occupancyRole" className="mt-1" defaultValue="OWNER">
               <option>OWNER</option>
@@ -152,7 +162,7 @@ export function ResidentsPage() {
             </Select>
           </div>
           <Button className="w-full" disabled={create.isPending}>
-            Save resident
+            Save member
           </Button>
         </form>
       </Modal>

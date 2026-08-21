@@ -2,7 +2,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { isAdminRole, useAuth } from "@/context/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function ProtectedRoute({ role }: { role?: "ADMIN" | "RESIDENT" }) {
+export function ProtectedRoute({ role }: { role?: "ADMIN" | "RESIDENT" | "TREASURER" | "SECRETARY" }) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const location = useLocation();
 
@@ -25,6 +25,12 @@ export function ProtectedRoute({ role }: { role?: "ADMIN" | "RESIDENT" }) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
   if (role === "ADMIN" && !isAdminRole(user?.role)) {
+    return <Navigate to="/resident/dashboard" replace />;
+  }
+  if (role === "TREASURER" && !["ADMIN", "SOCIETY_ADMIN", "TREASURER", "ACCOUNTANT"].includes(user?.role || "")) {
+    return <Navigate to="/resident/dashboard" replace />;
+  }
+  if (role === "SECRETARY" && !["ADMIN", "SOCIETY_ADMIN", "SECRETARY", "CHAIRMAN"].includes(user?.role || "")) {
     return <Navigate to="/resident/dashboard" replace />;
   }
   if (role === "RESIDENT" && isAdminRole(user?.role)) {

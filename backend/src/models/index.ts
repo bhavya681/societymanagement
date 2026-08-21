@@ -11,3 +11,7 @@ export { Announcement } from "./Announcement";
 export { AnnouncementRead } from "./AnnouncementRead";
 export { AuditLog } from "./AuditLog";
 export { SocietyDocument } from "./Document";
+export { Vendor } from "./Vendor";
+export { RecurringExpense } from "./RecurringExpense";
+export { Income } from "./Income";
+export { MonthClosing } from "./MonthClosing";

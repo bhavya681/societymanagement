@@ -520,6 +520,15 @@ export function SettingsPage() {
       >
         <Card>
           <CardHeader>
+            <CardTitle>Resident invite code</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-slate-500">Share this code so residents can join your society. Data stays isolated from other societies.</p>
+            <p className="mt-3 font-mono text-2xl font-semibold tracking-widest text-slate-900">{String(s.inviteCode || "—")}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
             <CardTitle>Society profile</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -555,6 +564,7 @@ export function SettingsPage() {
               <Select name="penaltyType" defaultValue={String(penalty.type || "FIXED")} className="mt-1">
                 <option>FIXED</option>
                 <option>PERCENTAGE</option>
+                <option>PER_DAY</option>
               </Select>
             </div>
             <div>

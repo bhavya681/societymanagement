@@ -49,7 +49,7 @@ export const listResidents = asyncHandler(async (req: Request, res: Response) =>
   const { page, limit, skip, sort } = parsePagination(req.query, "name");
   const filter: Record<string, unknown> = {
     societyId: sid,
-    role: { $in: ["RESIDENT", "COMMITTEE"] },
+    role: { $in: isAdminLike(req.user!.role) ? ["ADMIN", "TREASURER", "ACCOUNTANT", "SECRETARY", "RESIDENT", "COMMITTEE"] : ["RESIDENT", "COMMITTEE"] },
   };
   if (!isAdminLike(req.user!.role)) {
     const society = await Society.findById(sid);
@@ -95,12 +95,15 @@ export const createResident = asyncHandler(async (req: Request, res: Response) =
   const sid = societyId(req);
   const exists = await User.findOne({ email: req.body.email.toLowerCase() });
   if (exists) throw AppError.conflict("Email is already registered", "EMAIL_TAKEN");
-  const password = req.body.password ?? "password";
+  if (!req.body.password) {
+    throw AppError.badRequest("Password is required for new residents", "PASSWORD_REQUIRED");
+  }
+  const passwordHash = await bcrypt.hash(req.body.password, 12);
   const user = await User.create({
     name: req.body.name,
     email: req.body.email.toLowerCase(),
     phone: req.body.phone,
-    passwordHash: await bcrypt.hash(password, 12),
+    passwordHash,
     role: req.body.role ?? "RESIDENT",
     status: "ACTIVE",
     societyId: sid,
@@ -222,5 +225,77 @@ export const residentHistory = asyncHandler(async (req: Request, res: Response) 
     bills: bills.map(publicDoc),
     payments: payments.map(publicDoc),
     requests: requests.map(publicDoc),
+  });
+});
+
+export const residentLedger = asyncHandler(async (req: Request, res: Response) => {
+  const sid = societyId(req);
+  const user = await User.findOne({ _id: req.params.id, societyId: sid }).populate("flatId", "flatNumber");
+  if (!user) throw AppError.notFound("Resident not found", "RESIDENT_NOT_FOUND");
+  const bills = await Bill.find({ societyId: sid, residentId: user._id, status: { $ne: "CANCELLED" } })
+    .populate("flatId", "flatNumber")
+    .sort({ billingYear: -1, billingMonth: -1 });
+  const payments = await Payment.find({ societyId: sid, residentId: user._id, status: "SUCCESS" })
+    .sort({ paymentDate: -1 })
+    .limit(50);
+  const totalCharged = bills.reduce((sum, b) => sum + b.totalAmount, 0);
+  const totalPaid = bills.reduce((sum, b) => sum + b.paidAmount, 0);
+  const totalPenalty = bills.reduce((sum, b) => sum + b.penalty, 0);
+  const outstanding = totalCharged - totalPaid;
+  return success(res, {
+    resident: publicDoc(user),
+    summary: {
+      totalCharged,
+      totalPaid,
+      totalPenalty,
+      outstanding,
+    },
+    bills: bills.map(publicDoc),
+    payments: payments.map(publicDoc),
+  });
+});
+
+export const residentMonthlyLedger = asyncHandler(async (req: Request, res: Response) => {
+  const sid = societyId(req);
+  const uid = req.user!.id;
+  const bills = await Bill.find({ societyId: sid, residentId: uid, status: { $ne: "CANCELLED" } })
+    .populate("flatId", "flatNumber")
+    .sort({ billingYear: -1, billingMonth: -1 });
+  const payments = await Payment.find({ societyId: sid, residentId: uid, status: "SUCCESS" }).sort({ paymentDate: -1 });
+  const paymentMap = new Map<string, number>();
+  for (const p of payments) {
+    const key = `${p.billId}`;
+    paymentMap.set(key, (paymentMap.get(key) || 0) + p.amount);
+  }
+  const rows = bills.map((b) => {
+    const paid = paymentMap.get(String(b._id)) || b.paidAmount;
+    const remaining = Math.max(0, b.totalAmount - paid);
+    return {
+      id: String(b._id),
+      billingMonth: b.billingMonth,
+      billingYear: b.billingYear,
+      flatNumber: (b.flatId as { flatNumber?: string })?.flatNumber,
+      baseAmount: b.baseAmount,
+      additionalCharges: b.additionalCharges,
+      penalty: b.penalty,
+      discount: b.discount,
+      totalAmount: b.totalAmount,
+      paidAmount: paid,
+      remaining,
+      status: b.status,
+      dueDate: b.dueDate,
+    };
+  });
+  const totalCharged = rows.reduce((sum, r) => sum + r.totalAmount, 0);
+  const totalPaid = rows.reduce((sum, r) => sum + r.paidAmount, 0);
+  const totalPenalty = rows.reduce((sum, r) => sum + r.penalty, 0);
+  return success(res, {
+    summary: {
+      totalCharged,
+      totalPaid,
+      totalPenalty,
+      outstanding: totalCharged - totalPaid,
+    },
+    rows,
   });
 });

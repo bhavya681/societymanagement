@@ -64,12 +64,15 @@ export const createAnnouncement = asyncHandler(async (req: Request, res: Respons
 });
 
 export const updateAnnouncement = asyncHandler(async (req: Request, res: Response) => {
-  const doc = await Announcement.findOneAndUpdate(
-    { _id: req.params.id, societyId: societyId(req) },
-    { $set: req.body },
-    { new: true },
-  );
+  const doc = await Announcement.findOne({ _id: req.params.id, societyId: societyId(req) });
   if (!doc) throw AppError.notFound("Announcement not found", "ANNOUNCEMENT_NOT_FOUND");
+  const allowed = ["title", "content", "category", "priority", "publishDate", "expiryDate", "pinned", "important", "status"];
+  const update: Record<string, unknown> = {};
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) update[key] = req.body[key];
+  }
+  Object.assign(doc, update);
+  await doc.save();
   return success(res, publicDoc(doc), "Announcement updated");
 });
 

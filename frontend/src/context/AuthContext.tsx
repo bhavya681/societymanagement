@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import * as authApi from "@/api/auth";
 import { ApiError, setToken } from "@/api/client";
 import type { AuthUser } from "@/types";
+import { useNavigate } from "react-router-dom";
 
 interface AuthState {
   user: AuthUser | null;
@@ -9,6 +10,7 @@ interface AuthState {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   register: (payload: Record<string, unknown>) => Promise<AuthUser>;
+  registerSociety: (payload: Record<string, unknown>) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -18,6 +20,7 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   const refreshUser = async () => {
     try {
@@ -52,6 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(result.user);
         return result.user;
       },
+      registerSociety: async (payload) => {
+        const result = await authApi.registerSociety(payload);
+        setToken(result.token);
+        setUser(result.user);
+        return result.user;
+      },
       logout: async () => {
         try {
           await authApi.logout();
@@ -60,10 +69,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         setToken(null);
         setUser(null);
+        navigate("/login", { replace: true });
       },
       refreshUser,
     }),
-    [user, isLoading],
+    [user, isLoading, navigate],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -76,5 +86,5 @@ export function useAuth() {
 }
 
 export function isAdminRole(role?: string) {
-  return ["ADMIN", "SECRETARY", "CHAIRMAN", "ACCOUNTANT", "COMMITTEE"].includes(role || "");
+  return ["ADMIN", "SECRETARY", "CHAIRMAN", "ACCOUNTANT", "COMMITTEE", "TREASURER", "SOCIETY_ADMIN"].includes(role || "");
 }

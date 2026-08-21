@@ -34,7 +34,7 @@ const adminGroups = [
   {
     label: "Property",
     items: [
-      { to: "/admin/residents", label: "Residents", icon: Users },
+      { to: "/admin/residents", label: "People", icon: Users },
       { to: "/admin/buildings", label: "Buildings", icon: Building2 },
       { to: "/admin/flats", label: "Flats", icon: Home },
     ],
@@ -152,14 +152,14 @@ export function AppShell() {
             <div key={group.label} className="mb-5">
               <p className="mb-1.5 px-2 text-[11px] font-medium uppercase tracking-wide text-slate-500">{group.label}</p>
               <div className="space-y-0.5">
-                {group.items.map((item) => (
+        {group.items.map((item) => (
                   <NavLink
                     key={item.to}
                     to={item.to}
                     onClick={() => setOpen(false)}
                     className={({ isActive }) =>
                       cn(
-                        "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm hover:bg-white/5 hover:text-white",
+                        "flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-sm hover:bg-white/5 hover:text-white",
                         isActive && "bg-teal-800 text-white",
                       )
                     }
@@ -196,7 +196,11 @@ export function AppShell() {
             <Menu className="h-5 w-5" />
           </button>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-slate-900">Sunrise Residency</p>
+            <p className="truncate text-sm font-medium text-slate-900">
+              {typeof user?.societyId === "object" && user.societyId && "name" in user.societyId
+                ? String(user.societyId.name)
+                : "Society Hub"}
+            </p>
             <p className="hidden truncate text-xs text-slate-500 sm:block">
               {admin ? "Society operations console" : "Resident portal"}
             </p>

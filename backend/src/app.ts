@@ -15,11 +15,16 @@ import { billRouter, paymentRouter } from "./routes/bill.routes";
 import expenseRoutes from "./routes/expense.routes";
 import requestRoutes from "./routes/request.routes";
 import announcementRoutes from "./routes/announcement.routes";
+import vendorRoutes from "./routes/vendor.routes";
+import recurringExpenseRoutes from "./routes/recurring-expense.routes";
+import incomeRoutes from "./routes/income.routes";
+import monthClosingRoutes from "./routes/month-closing.routes";
 import {
   auditRouter,
   dashboardRouter,
   documentRouter,
   exportRouter,
+  monthClosingRouter,
   reportRouter,
 } from "./routes/report.routes";
 
@@ -57,6 +62,10 @@ export function createApp() {
   protectedApi.use("/bills", billRouter);
   protectedApi.use("/payments", paymentRouter);
   protectedApi.use("/expenses", expenseRoutes);
+  protectedApi.use("/vendors", vendorRoutes);
+  protectedApi.use("/recurring-expenses", recurringExpenseRoutes);
+  protectedApi.use("/income", incomeRoutes);
+  protectedApi.use("/month-closing", monthClosingRoutes);
   protectedApi.use("/requests", requestRoutes);
   protectedApi.use("/announcements", announcementRoutes);
   protectedApi.use("/reports", reportRouter);
@@ -64,6 +73,7 @@ export function createApp() {
   protectedApi.use("/documents", documentRouter);
   protectedApi.use("/audit", auditRouter);
   protectedApi.use("/exports", exportRouter);
+  protectedApi.use("/month-closing", monthClosingRouter);
   app.use("/api", protectedApi);
 
   app.use(notFoundHandler);

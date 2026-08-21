@@ -127,8 +127,10 @@ This **resets** demo collections and inserts Sunrise Residency sample data (buil
 | Role | Email | Password |
 | --- | --- | --- |
 | Admin | admin@example.com | password |
-| Accountant | accountant@example.com | password |
+| Treasurer | treasurer@example.com | password |
 | Resident | resident@example.com | password |
+
+Create your own society at `/register-society`. Residents join with the invite code from **Settings** (demo code: `SUNRISE1`).
 
 These authenticate against MongoDB. There is no frontend-only fake login.
 

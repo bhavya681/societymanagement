@@ -5,6 +5,8 @@ import {
   listResidents,
   resetResidentPassword,
   residentHistory,
+  residentLedger,
+  residentMonthlyLedger,
   updateResident,
   updateResidentStatus,
 } from "../controllers/resident.controller";
@@ -25,4 +27,6 @@ router.put("/:id", validate(updateResidentSchema), updateResident);
 router.patch("/:id/status", requireAdmin, validate(statusSchema), updateResidentStatus);
 router.post("/:id/reset-password", requireAdmin, validate(resetPasswordSchema), resetResidentPassword);
 router.get("/:id/history", residentHistory);
+router.get("/:id/ledger", requireAdmin, residentLedger);
+router.get("/me/monthly-ledger", residentMonthlyLedger);
 export default router;

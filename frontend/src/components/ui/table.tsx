@@ -96,7 +96,7 @@ export function PaginationBar({
       <div className="flex gap-2">
         <button
           type="button"
-          className="h-8 rounded-md border border-slate-200 bg-white px-3 text-slate-700 disabled:opacity-40"
+          className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-3 text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
           disabled={page <= 1}
           onClick={onPrev}
         >
@@ -104,7 +104,7 @@ export function PaginationBar({
         </button>
         <button
           type="button"
-          className="h-8 rounded-md border border-slate-200 bg-white px-3 text-slate-700 disabled:opacity-40"
+          className="h-8 cursor-pointer rounded-md border border-slate-200 bg-white px-3 text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
           disabled={page >= totalPages}
           onClick={onNext}
         >

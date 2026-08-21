@@ -14,6 +14,7 @@ export const residentsApi = {
   resetPassword: (id: string, password: string) =>
     api(`/residents/${id}/reset-password`, { method: "POST", body: JSON.stringify({ password }) }),
   history: (id: string) => api(`/residents/${id}/history`),
+  ledger: (id: string) => api<{ resident: Record<string, unknown>; summary: Record<string, number>; bills: Record<string, unknown>[]; payments: Record<string, unknown>[] }>(`/residents/${id}/ledger`),
 };
 
 export const buildingsApi = {
@@ -36,13 +37,15 @@ export const flatsApi = {
 export const billsApi = {
   list: (params: Record<string, string | number | undefined> = {}) =>
     api<Paginated<Record<string, unknown>>>(`/bills${qs(params)}`),
-  get: (id: string) => api(`/bills/${id}`),
+  get: (id: string) => api<Record<string, unknown>>(`/bills/${id}`),
   generate: (body: Record<string, unknown>) =>
     api("/bills/generate", { method: "POST", body: JSON.stringify(body) }),
   update: (id: string, body: Record<string, unknown>) =>
     api(`/bills/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   pay: (id: string, body: Record<string, unknown>) =>
     api(`/bills/${id}/payment`, { method: "POST", body: JSON.stringify(body) }),
+  outstanding: (params: Record<string, string | number | undefined> = {}) =>
+    api<Record<string, unknown>[]>(`/bills/outstanding${qs(params)}`),
 };
 
 export const paymentsApi = {
@@ -90,11 +93,54 @@ export const reportsApi = {
   expenses: (params: Record<string, string | undefined> = {}) => api(`/reports/expenses${qs(params)}`),
   requests: (params: Record<string, string | undefined> = {}) => api(`/reports/requests${qs(params)}`),
   residents: () => api(`/reports/residents`),
+  cashFlow: (params: Record<string, string | undefined> = {}) => api(`/reports/cash-flow${qs(params)}`),
+  aging: () => api(`/reports/aging`),
+};
+
+export const vendorsApi = {
+  list: (params: Record<string, string | number | undefined> = {}) =>
+    api<Paginated<Record<string, unknown>>>(`/vendors${qs(params)}`),
+  create: (body: Record<string, unknown>) =>
+    api(`/vendors`, { method: "POST", body: JSON.stringify(body) }),
+  update: (id: string, body: Record<string, unknown>) =>
+    api(`/vendors/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  remove: (id: string) => api(`/vendors/${id}`, { method: "DELETE" }),
+};
+
+export const recurringExpensesApi = {
+  list: (params: Record<string, string | number | undefined> = {}) =>
+    api<Paginated<Record<string, unknown>>>(`/recurring-expenses${qs(params)}`),
+  create: (body: Record<string, unknown>) =>
+    api(`/recurring-expenses`, { method: "POST", body: JSON.stringify(body) }),
+  update: (id: string, body: Record<string, unknown>) =>
+    api(`/recurring-expenses/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  remove: (id: string) => api(`/recurring-expenses/${id}`, { method: "DELETE" }),
+};
+
+export const incomeApi = {
+  list: (params: Record<string, string | number | undefined> = {}) =>
+    api<Paginated<Record<string, unknown>>>(`/income${qs(params)}`),
+  create: (body: Record<string, unknown>) =>
+    api(`/income`, { method: "POST", body: JSON.stringify(body) }),
+  update: (id: string, body: Record<string, unknown>) =>
+    api(`/income/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  remove: (id: string) => api(`/income/${id}`, { method: "DELETE" }),
+};
+
+export const monthClosingApi = {
+  list: () => api<Record<string, unknown>[]>("/month-closing"),
+  status: (params: Record<string, string | number | undefined> = {}) =>
+    api<Record<string, unknown>>(`/month-closing/status${qs(params)}`),
+  close: (body: Record<string, unknown>) =>
+    api(`/month-closing/close`, { method: "POST", body: JSON.stringify(body) }),
+  reopen: (body: Record<string, unknown>) =>
+    api(`/month-closing/reopen`, { method: "POST", body: JSON.stringify(body) }),
 };
 
 export const dashboardApi = {
   admin: () => api<Record<string, unknown>>("/dashboard/admin"),
   resident: () => api<Record<string, unknown>>("/dashboard/resident"),
+  monthlyLedger: () => api<{ summary: Record<string, number>; rows: Record<string, unknown>[] }>("/residents/me/monthly-ledger"),
 };
 
 export const societyApi = {

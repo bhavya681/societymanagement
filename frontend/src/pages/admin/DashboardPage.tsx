@@ -27,7 +27,8 @@ export function AdminDashboardPage() {
   const totals = data.totals as Record<string, number>;
   const monthly = (data.collectionSummary as { month: string; collection: number; expenses: number }[]) ?? [];
   const expenses = (data.expenseSummary as { category: string; amount: number }[]) ?? [];
-  const status = (data.paymentStatus as { status: string; count: number }[]) ?? [];
+  const billStats = (totals.billStats && typeof totals.billStats === "object" ? totals.billStats : {}) as Record<string, number>;
+  const cashFlow = (totals.cashFlow && typeof totals.cashFlow === "object" ? totals.cashFlow : {}) as Record<string, number>;
 
   return (
     <div>
@@ -40,21 +41,21 @@ export function AdminDashboardPage() {
               <Link to="/admin/bills">Generate bills</Link>
             </Button>
             <Button variant="outline" asChild size="sm">
-              <Link to="/admin/residents">Add resident</Link>
+              <Link to="/admin/payments">Record payment</Link>
             </Button>
             <Button variant="outline" asChild size="sm">
-              <Link to="/admin/payments">Record payment</Link>
+              <Link to="/admin/expenses">Add expense</Link>
             </Button>
           </>
         }
       />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard label="Total collection" value={formatINR(totals.totalCollected)} />
-        <StatCard label="Pending dues" value={formatINR(totals.totalPending)} />
-        <StatCard label="Overdue" value={formatINR(totals.totalOverdue)} />
+        <StatCard label="Total expected" value={formatINR(totals.totalBilled)} />
+        <StatCard label="Total collected" value={formatINR(totals.totalCollected)} />
+        <StatCard label="Outstanding" value={formatINR(totals.outstanding)} />
+        <StatCard label="Penalties" value={formatINR(totals.totalPenalty)} />
         <StatCard label="Expenses" value={formatINR(totals.totalExpenses)} />
-        <StatCard label="Current balance" value={formatINR(totals.currentBalance)} />
-        <StatCard label="Open requests" value={String(totals.openRequests ?? 0)} />
+        <StatCard label="Net cash flow" value={formatINR(cashFlow.netCashFlow)} />
       </div>
       <div className="mt-5 grid gap-4 xl:grid-cols-3">
         <Card className="xl:col-span-2">
@@ -99,19 +100,13 @@ export function AdminDashboardPage() {
       <div className="mt-5 grid gap-4 lg:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Payment status</CardTitle>
+            <CardTitle>Bill status</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {status.length === 0 ? (
-              <p className="text-sm text-slate-500">No bills yet.</p>
-            ) : (
-              status.map((row) => (
-                <div key={row.status} className="flex items-center justify-between text-sm">
-                  <Badge status={row.status} />
-                  <span className="font-medium tabular-nums">{row.count}</span>
-                </div>
-              ))
-            )}
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-slate-500">Paid</span><span className="font-medium">{String(billStats.paid ?? 0)}</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">Partially paid</span><span className="font-medium">{String(billStats.partial ?? 0)}</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">Overdue</span><span className="font-medium text-red-700">{String(billStats.overdue ?? 0)}</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">Pending</span><span className="font-medium">{String(billStats.pending ?? 0)}</span></div>
           </CardContent>
         </Card>
         <Card>

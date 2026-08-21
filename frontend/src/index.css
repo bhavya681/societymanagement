@@ -46,6 +46,20 @@ textarea {
   font-family: inherit;
 }
 
+button,
+[type="button"],
+[type="submit"],
+[type="reset"],
+a[role="button"] {
+  cursor: pointer;
+}
+
+button:disabled,
+[type="button"]:disabled,
+[type="submit"]:disabled {
+  cursor: not-allowed;
+}
+
 .tabular {
   font-variant-numeric: tabular-nums;
 }

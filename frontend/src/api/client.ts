@@ -31,6 +31,10 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
+  if (res.status === 401 || res.status === 403) {
+    setToken(null);
+    throw new ApiError("Session expired. Please sign in again.", res.status, "AUTH_EXPIRED");
+  }
   const contentType = res.headers.get("content-type") || "";
   if (contentType.includes("text/csv")) {
     const blob = await res.blob();

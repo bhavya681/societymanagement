@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import { Bill } from "../models/Bill";
 import { Flat } from "../models/Flat";
+import { Payment } from "../models/Payment";
 import { Society } from "../models/Society";
 import { AppError } from "../utils/AppError";
 import { computeBillTotalPaise, rupeesToPaise } from "../utils/money";
@@ -36,6 +37,9 @@ export async function refreshBillStatus(billId: Types.ObjectId | string, penalty
     config = society?.penaltyConfig as PenaltyConfig;
   }
 
+  const latestPayment = await Payment.findOne({ billId: bill._id, status: "SUCCESS" }).sort({ paymentDate: -1 });
+  const referenceDate = latestPayment?.paymentDate;
+
   if (config) {
     const result = applyPenaltyIfDue({
       dueDate: bill.dueDate,
@@ -46,6 +50,7 @@ export async function refreshBillStatus(billId: Types.ObjectId | string, penalty
       paidAmount: bill.paidAmount,
       status: bill.status,
       config,
+      paymentDate: referenceDate,
     });
     if (result.applied) {
       bill.penalty = result.penalty;
@@ -173,8 +178,8 @@ export async function syncOverdueBills(societyId: string) {
   for (const bill of bills) {
     const before = bill.status;
     await refreshBillStatus(bill._id, society.penaltyConfig as PenaltyConfig);
-    if (before !== (await Bill.findById(bill._id))?.status) updated += 1;
-    else updated += 1;
+    const after = (await Bill.findById(bill._id))?.status;
+    if (before !== after) updated += 1;
   }
   return updated;
 }

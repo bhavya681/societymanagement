@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { Types } from "mongoose";
 import { Bill } from "../models/Bill";
 import { Payment } from "../models/Payment";
 import { Expense } from "../models/Expense";
@@ -17,6 +18,7 @@ import {
   monthlyCollection,
   paymentStatusBreakdown,
 } from "../services/report.service";
+import { cashFlowReport } from "../services/report.service";
 import { refreshBillStatus } from "../services/billing.service";
 import { Society } from "../models/Society";
 import { PenaltyConfig } from "../services/penalty.service";
@@ -33,7 +35,7 @@ export const adminDashboard = asyncHandler(async (req: Request, res: Response) =
   }
 
   const year = Number(req.query.year) || new Date().getFullYear();
-  const [totals, monthly, categories, paymentStatus, recentPayments, recentRequests, recentAnnouncements, openRequests, residentCount] =
+  const [totals, monthly, categories, paymentStatus, recentPayments, recentRequests, recentAnnouncements, openRequests, residentCount, billStats] =
     await Promise.all([
       financialSummary(sid),
       monthlyCollection(sid, year),
@@ -51,10 +53,47 @@ export const adminDashboard = asyncHandler(async (req: Request, res: Response) =
         status: { $in: ["OPEN", "ASSIGNED", "IN_PROGRESS", "ON_HOLD"] },
       }),
       User.countDocuments({ societyId: sid, role: "RESIDENT", status: "ACTIVE" }),
+      Bill.aggregate([
+        { $match: { societyId: new Types.ObjectId(sid), status: { $ne: "CANCELLED" } } },
+        {
+          $group: {
+            _id: null,
+            totalBilled: { $sum: "$totalAmount" },
+            totalPaid: { $sum: "$paidAmount" },
+            totalPenalty: { $sum: "$penalty" },
+            countPaid: { $sum: { $cond: [{ $eq: ["$status", "PAID"] }, 1, 0] } },
+            countPartial: { $sum: { $cond: [{ $eq: ["$status", "PARTIALLY_PAID"] }, 1, 0] } },
+            countOverdue: { $sum: { $cond: [{ $eq: ["$status", "OVERDUE"] }, 1, 0] } },
+            countPending: { $sum: { $cond: [{ $eq: ["$status", "PENDING"] }, 1, 0] } },
+          },
+        },
+      ]),
     ]);
 
+  const stats = billStats[0] || {};
+  const totalBilled = paiseToRupees(stats.totalBilled || 0);
+  const totalPaid = paiseToRupees(stats.totalPaid || 0);
+  const totalPenalty = paiseToRupees(stats.totalPenalty || 0);
+  const collectionRate = totalBilled > 0 ? Math.round((totalPaid / totalBilled) * 1000) / 10 : 0;
+  const cashFlow = await cashFlowReport(sid);
+
   return success(res, {
-    totals: { ...totals, openRequests, residentCount },
+    totals: {
+      ...totals,
+      totalBilled,
+      totalCollected: totals.totalCollected,
+      totalPenalty,
+      collectionRate,
+      cashFlow,
+      billStats: {
+        paid: stats.countPaid || 0,
+        partial: stats.countPartial || 0,
+        overdue: stats.countOverdue || 0,
+        pending: stats.countPending || 0,
+      },
+      openRequests,
+      residentCount,
+    },
     collectionSummary: monthly,
     expenseSummary: categories,
     paymentStatus,

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { billsApi, downloadExport, expensesApi, paymentsApi } from "@/api/resources";
+import { billsApi, downloadExport, expensesApi, paymentsApi, residentsApi } from "@/api/resources";
 import { PageHeader } from "@/components/layout/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -174,7 +174,7 @@ export function BillsPage() {
       <Modal title="Record payment" open={Boolean(payBill)} onClose={() => setPayBill(null)}>
         {payBill ? (
           <form
-            className="space-y-3"
+            className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
               const f = new FormData(e.currentTarget);
@@ -189,11 +189,28 @@ export function BillsPage() {
               });
             }}
           >
-            <p className="text-sm text-slate-500">
-              Remaining {formatINR((payBill.totalAmount as number) - (payBill.paidAmount as number))}
-            </p>
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
+              <p className="font-medium text-slate-900">{String(payBill.billNumber)}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {(payBill.flatId as { flatNumber?: string })?.flatNumber} · {monthName(payBill.billingMonth as number)} {String(payBill.billingYear)}
+              </p>
+              <div className="mt-3 space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Maintenance</span>
+                  <span className="font-medium tabular-nums">{formatINR(payBill.totalAmount as number)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Paid so far</span>
+                  <span className="font-medium tabular-nums">{formatINR(payBill.paidAmount as number)}</span>
+                </div>
+                <div className="flex justify-between border-t border-slate-200 pt-1">
+                  <span className="text-slate-700">Remaining</span>
+                  <span className="font-semibold tabular-nums">{formatINR((payBill.totalAmount as number) - (payBill.paidAmount as number))}</span>
+                </div>
+              </div>
+            </div>
             <div>
-              <Label>Amount</Label>
+              <Label>Amount received (₹)</Label>
               <Input
                 name="amount"
                 type="number"
@@ -212,10 +229,16 @@ export function BillsPage() {
               </Select>
             </div>
             <div>
-              <Label>Transaction ID</Label>
+              <Label>Reference / transaction ID</Label>
               <Input name="transactionId" className="mt-1" />
             </div>
-            <Button className="w-full">Save payment</Button>
+            <div>
+              <Label>Notes</Label>
+              <Input name="notes" className="mt-1" />
+            </div>
+            <Button className="w-full" disabled={pay.isPending}>
+              {pay.isPending ? "Saving..." : "Confirm payment"}
+            </Button>
           </form>
         ) : null}
       </Modal>
@@ -224,20 +247,102 @@ export function BillsPage() {
 }
 
 export function PaymentsPage() {
-  const query = useQuery({ queryKey: ["payments"], queryFn: () => paymentsApi.list({ limit: 50 }) });
-  const rows = query.data?.items ?? [];
+  const qc = useQueryClient();
+  const [method, setMethod] = useState("");
+  const [status, setStatus] = useState("");
+  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<"resident" | "bill" | "details">("resident");
+  const [selectedResident, setSelectedResident] = useState<Record<string, unknown> | null>(null);
+  const [selectedBill, setSelectedBill] = useState<Record<string, unknown> | null>(null);
+  const [residentSearch, setResidentSearch] = useState("");
+  const [amount, setAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("UPI");
+  const [transactionId, setTransactionId] = useState("");
+  const [notes, setNotes] = useState("");
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
+
+  const residents = useQuery({
+    queryKey: ["residents-search", residentSearch],
+    queryFn: () => residentsApi.list({ search: residentSearch, limit: 10 }),
+    enabled: step === "resident" && residentSearch.length >= 2,
+  });
+
+  const outstanding = useQuery({
+    queryKey: ["outstanding-bills", selectedResident?.id],
+    queryFn: () =>
+      billsApi.outstanding({
+        residentId: selectedResident?.id as string | undefined,
+        status: "PENDING,PARTIALLY_PAID,OVERDUE",
+      }),
+    enabled: step === "bill" && Boolean(selectedResident?.id),
+  });
+
+  const record = useMutation({
+    mutationFn: (p: { id: string; payload: Record<string, unknown> }) => billsApi.pay(p.id, p.payload),
+    onSuccess: () => {
+      toast.success("Payment recorded successfully.");
+      qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["bills"] });
+      qc.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      setOpen(false);
+      resetForm();
+    },
+    onError: onErr,
+  });
+
+  function resetForm() {
+    setStep("resident");
+    setSelectedResident(null);
+    setSelectedBill(null);
+    setResidentSearch("");
+    setAmount("");
+    setPaymentMethod("UPI");
+    setTransactionId("");
+    setNotes("");
+    setPaymentDate(new Date().toISOString().slice(0, 10));
+  }
+
+  const paymentQuery = useQuery({
+    queryKey: ["payments", method, status],
+    queryFn: () =>
+      paymentsApi.list({
+        method: method || undefined,
+        status: status || undefined,
+        limit: 50,
+      }),
+  });
+  const rows = paymentQuery.data?.items ?? [];
+
+  const remainingAfter = selectedBill
+    ? Math.max(0, (selectedBill.totalAmount as number) - (selectedBill.paidAmount as number) - Number(amount || 0))
+    : 0;
+
   return (
     <div>
       <PageHeader
         title="Payments"
         subtitle="Successful collections across the society."
         actions={
-          <Button variant="outline" size="sm" onClick={() => downloadExport("payments")}>
-            Export CSV
+          <Button size="sm" onClick={() => { resetForm(); setOpen(true); }}>
+            Record payment
           </Button>
         }
       />
-      {query.isLoading ? (
+      <Toolbar>
+        <Select className="sm:max-w-xs" value={method} onChange={(e) => setMethod(e.target.value)}>
+          <option value="">All methods</option>
+          {["CASH", "BANK_TRANSFER", "UPI", "CHEQUE", "ONLINE"].map((m) => (
+            <option key={m}>{m}</option>
+          ))}
+        </Select>
+        <Select className="sm:max-w-xs" value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="">All statuses</option>
+          {["SUCCESS", "PENDING", "FAILED", "REFUNDED"].map((s) => (
+            <option key={s}>{s}</option>
+          ))}
+        </Select>
+      </Toolbar>
+      {paymentQuery.isLoading ? (
         <Skeleton className="h-64" />
       ) : !rows.length ? (
         <EmptyState title="No payments recorded yet." />
@@ -251,6 +356,7 @@ export function PaymentsPage() {
             { header: "Flat", cell: (p) => (p.flatId as { flatNumber?: string })?.flatNumber },
             { header: "Amount", align: "right", cell: (p) => formatINR(p.amount as number) },
             { header: "Method", cell: (p) => String(p.paymentMethod) },
+            { header: "Reference", cell: (p) => String(p.transactionId || "—") },
             { header: "Status", cell: (p) => <Badge status={String(p.status)} /> },
           ]}
           mobile={(p) => (
@@ -260,12 +366,184 @@ export function PaymentsPage() {
                 <p className="mt-1 text-sm text-slate-500">
                   {formatDate(p.paymentDate as string)} · {String(p.paymentMethod)}
                 </p>
+                {p.transactionId ? (
+                  <p className="mt-0.5 text-xs text-slate-400">Ref: {String(p.transactionId)}</p>
+                ) : null}
               </div>
               <p className="font-medium tabular-nums">{formatINR(p.amount as number)}</p>
             </div>
           )}
         />
       )}
+
+      <Modal title="Record payment" open={open} onClose={() => { setOpen(false); resetForm(); }}>
+        <div className="space-y-5">
+          {step === "resident" && (
+            <div className="space-y-3">
+              <p className="text-sm text-slate-500">Search for a resident to record a payment against their outstanding bills.</p>
+              <div>
+                <Label>Search resident</Label>
+                <Input
+                  className="mt-1"
+                  placeholder="Name, email or phone"
+                  value={residentSearch}
+                  onChange={(e) => setResidentSearch(e.target.value)}
+                />
+              </div>
+              {residents.isLoading ? (
+                <Skeleton className="h-32" />
+              ) : (
+                <div className="max-h-64 space-y-2 overflow-y-auto">
+                  {(residents.data?.items ?? []).map((r: Record<string, unknown>) => (
+                    <button
+                      key={String(r.id)}
+                      type="button"
+                      className="flex w-full items-center justify-between rounded-md border border-slate-200 p-3 text-left hover:bg-slate-50"
+                      onClick={() => { setSelectedResident(r); setStep("bill"); }}
+                    >
+                      <div>
+                        <p className="font-medium text-slate-900">{String(r.name)}</p>
+                        <p className="text-xs text-slate-500">
+                          {(r.flatId as { flatNumber?: string } | null)?.flatNumber ?? "Unassigned"} · {String(r.email)}
+                        </p>
+                      </div>
+                      {r.outstanding ? (
+                        <span className="text-sm font-medium tabular-nums text-red-700">{formatINR(r.outstanding as number)}</span>
+                      ) : null}
+                    </button>
+                  ))}
+                  {residentSearch.length >= 2 && !(residents.data?.items ?? []).length ? (
+                    <p className="text-sm text-slate-500">No residents found.</p>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === "bill" && selectedResident && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-slate-900">{String(selectedResident.name)}</p>
+                <Button variant="outline" size="sm" onClick={() => { setStep("resident"); setSelectedResident(null); }}>
+                  Change
+                </Button>
+              </div>
+              {outstanding.isLoading ? (
+                <Skeleton className="h-32" />
+              ) : (
+                <div className="max-h-64 space-y-2 overflow-y-auto">
+                  {(outstanding.data ?? []).length === 0 ? (
+                    <p className="text-sm text-slate-500">No outstanding bills for this resident.</p>
+                  ) : (
+                    (outstanding.data ?? []).map((b) => (
+                      <button
+                        key={String(b.id)}
+                        type="button"
+                        className="flex w-full items-center justify-between rounded-md border border-slate-200 p-3 text-left hover:bg-slate-50"
+                        onClick={() => { setSelectedBill(b); setStep("details"); }}
+                      >
+                        <div>
+                          <p className="font-medium text-slate-900">{String(b.billNumber)}</p>
+                          <p className="text-xs text-slate-500">
+                            {(b.flatId as { flatNumber?: string })?.flatNumber} · {monthName(b.billingMonth as number)} {String(b.billingYear)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium tabular-nums">{formatINR(b.totalAmount as number)}</p>
+                          <p className="text-xs text-slate-500">Remaining {formatINR((b.totalAmount as number) - (b.paidAmount as number))}</p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === "details" && selectedBill && (
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                record.mutate({
+                  id: String(selectedBill.id),
+                  payload: {
+                    amount: Number(amount),
+                    paymentMethod,
+                    transactionId,
+                    notes,
+                    paymentDate: new Date(paymentDate),
+                  },
+                });
+              }}
+            >
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
+                <p className="font-medium text-slate-900">{String(selectedBill.billNumber)}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {(selectedBill.flatId as { flatNumber?: string })?.flatNumber} · {monthName(selectedBill.billingMonth as number)} {String(selectedBill.billingYear)}
+                </p>
+                <div className="mt-3 space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Maintenance</span>
+                    <span className="font-medium tabular-nums">{formatINR(selectedBill.totalAmount as number)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Paid so far</span>
+                    <span className="font-medium tabular-nums">{formatINR(selectedBill.paidAmount as number)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-slate-200 pt-1">
+                    <span className="text-slate-700">Remaining</span>
+                    <span className="font-semibold tabular-nums">{formatINR((selectedBill.totalAmount as number) - (selectedBill.paidAmount as number))}</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <Label>Payment date</Label>
+                <Input name="paymentDate" type="date" required className="mt-1" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} />
+              </div>
+              <div>
+                <Label>Amount received (₹)</Label>
+                <Input
+                  name="amount"
+                  type="number"
+                  min={1}
+                  required
+                  className="mt-1"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Method</Label>
+                <Select name="paymentMethod" className="mt-1" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+                  {["UPI", "CASH", "BANK_TRANSFER", "CHEQUE", "ONLINE"].map((m) => (
+                    <option key={m}>{m}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <Label>Reference / transaction ID</Label>
+                <Input name="transactionId" className="mt-1" value={transactionId} onChange={(e) => setTransactionId(e.target.value)} />
+              </div>
+              <div>
+                <Label>Notes</Label>
+                <Input name="notes" className="mt-1" value={notes} onChange={(e) => setNotes(e.target.value)} />
+              </div>
+              {Number(amount) > 0 && remainingAfter > 0 ? (
+                <p className="text-sm text-amber-700">
+                  Remaining after this payment: {formatINR(remainingAfter)}
+                </p>
+              ) : null}
+              {remainingAfter === 0 && Number(amount) > 0 ? (
+                <p className="text-sm text-emerald-700">This payment will clear the bill.</p>
+              ) : null}
+              <Button className="w-full" disabled={record.isPending}>
+                {record.isPending ? "Saving..." : "Confirm payment"}
+              </Button>
+            </form>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }
